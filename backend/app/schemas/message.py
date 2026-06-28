@@ -27,6 +27,12 @@ class MessageResponse(BaseModel):
     type: str
     content: str
     created_at: datetime
+    edited_at: datetime | None = None
     filename: str | None = None
     reply_to: int | None = None
     reply_snippet: ReplySnippet | None = None
+
+
+class MessageEdit(BaseModel):
+    """Request payload for editing a text message's content."""
+    content: str

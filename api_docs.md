@@ -53,6 +53,7 @@ The token is returned by `/users/login` and `/users/signup`.
 | GET | `/rooms/{id}/pending` | Bearer | List pending join requests |
 | GET | `/rooms/{id}/messages/` | Bearer | Paginated message history |
 | DELETE | `/rooms/{id}/messages/{message_id}` | Bearer (sender or admin) | Soft-delete a message — sender deletes own; admin moderates any |
+| PATCH | `/rooms/{id}/messages/{message_id}` | Bearer (sender only) | Edit a text message's content — `{ "content": "..." }`; sets `edited_at`, broadcasts `message_edited` |
 | POST | `/rooms/{id}/upload` | Bearer | Upload file (creates message + document record) |
 | GET | `/rooms/{id}/documents` | Bearer | List room documents |
 | GET | `/documents/{file_id}` | Bearer or `?token=` | Open document (signed URL redirect or local stream) |
@@ -62,6 +63,8 @@ The token is returned by `/users/login` and `/users/signup`.
 > `/documents/{file_id}` accepts both `Authorization: Bearer` and `?token=` query param. The `?token=` fallback is required because browser `<img>`, `<audio>`, and `<video>` tags cannot attach custom headers.
 
 > **Direct rooms** (`room_type: "direct"`) are private to their two members: list/detail/message reads return `404` to non-members, and the join/approve/promote/leave/remove endpoints return `400`. Both members are auto-approved at creation, so the existing WebSocket and message endpoints work unchanged.
+
+> **Message edit** (`PATCH .../messages/{message_id}`): sender-only (admins cannot edit others' messages), text-only (file messages return `400`), content must be non-empty (`400`). Missing or soft-deleted messages return `404`. Message history includes `edited_at` (`null` until first edit).
 
 ---
 
@@ -81,13 +84,14 @@ Connect to `/ws/{room_id}?token=<jwt>`.
 ### Server → Client
 
 ```json
-{ "type": "message",      "id": 1, "sender_id": 3, "sender_name": "Alice", "content": "hello", "created_at": "...", "reply_to": 42, "reply_snippet": { ... } }
+{ "type": "message",      "id": 1, "sender_id": 3, "sender_name": "Alice", "content": "hello", "created_at": "...", "edited_at": null, "reply_to": 42, "reply_snippet": { ... } }
 { "type": "typing",       "user_id": 3, "user_name": "Alice" }
 { "type": "stop_typing",  "user_id": 3, "user_name": "Alice" }
 { "type": "file",         "id": 5, "sender_id": 3, "sender_name": "Alice", "file_url": "...", "filename": "..." }
 { "type": "online_users", "users": [1, 2, 3] }
 { "type": "error",        "content": "You don't have write permission in this room" }
 { "type": "message_deleted", "message_id": 100 }
+{ "type": "message_edited",   "id": 100, "content": "corrected text", "edited_at": "2026-06-28T12:00:00+00:00" }
 { "type": "member_removed",  "user_id": 5 }
 { "type": "kicked",          "content": "You were removed from 'general' by Alice" }
 ```

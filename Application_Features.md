@@ -30,6 +30,7 @@ Detailed feature reference for Chat Rooms. For API endpoints and WebSocket paylo
 - **Typing indicators** with 3-second graceful fade
 - **Room presence** (`online_users` count)
 - **Message deletion**: senders can delete their own messages in any room (the only deletion path in direct chats); admins additionally moderate others' messages in group rooms. Soft-delete is broadcast in real time so it disappears for everyone
+- **Message editing**: senders can edit their own **text** messages only — admins cannot rewrite someone else's words. A pencil icon on your messages opens an inline editor (Enter to save, Esc or Cancel to abort). Successful edits set `edited_at`, show an italic `(edited)` label, and broadcast `message_edited` so every open client updates in place. File messages are not editable
 - **Unread message badges**: per-room unread counts in the sidebar, derived from a per-member read watermark (`last_read_message_id`); the open room is auto-marked read and badges refresh on read, tab focus, and a 10s poll
 - **Custom toast + confirm UX** instead of native browser alerts
 - **Safer send UX**: message input is preserved and a toast is shown if the WebSocket is not open
@@ -44,7 +45,7 @@ Detailed feature reference for Chat Rooms. For API endpoints and WebSocket paylo
 - **Privacy**: direct rooms are visible and readable only to their two members; group rooms stay discoverable
 - **Profile cards**: click any name (sidebar, members panel, or a message sender) to open a profile card — read-only for others, editable for yourself
 - **Edit your profile**: a pencil icon next to your name opens the card to edit your **name, email, and mobile** via `PATCH /users/me` (partial update; email is normalized and must be unique); changes refresh your session so they show app-wide instantly
-- **Reused pipeline**: DMs ride the same WebSocket, messages, files, replies, unread badges, and message deletion as group rooms
+- **Reused pipeline**: DMs ride the same WebSocket, messages, files, replies, unread badges, message deletion, and message editing as group rooms
 - **Delete your own**: either participant can delete the messages they sent (removed for both sides); no admin exists in a direct chat
 
 ---

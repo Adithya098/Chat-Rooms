@@ -84,6 +84,7 @@ Tables are created automatically on first backend startup. Run migration scripts
 ```bash
 python backend/scripts/add_reply_to_column.py
 python backend/scripts/add_is_deleted_to_messages.py
+python backend/scripts/add_edited_at_to_messages.py
 ```
 
 **Backend only** (serves built `frontend/dist` if present):

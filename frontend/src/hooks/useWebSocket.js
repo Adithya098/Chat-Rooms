@@ -128,6 +128,15 @@ export function useWebSocket() {
           }
           break;
 
+        case "message_edited":
+          if (data.id != null) {
+            dispatch({
+              type: "UPDATE_MESSAGE",
+              payload: { id: data.id, content: data.content, edited_at: data.edited_at },
+            });
+          }
+          break;
+
         case "member_removed":
           window.dispatchEvent(new CustomEvent("chat-refresh-members"));
           break;

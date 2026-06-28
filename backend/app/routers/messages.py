@@ -7,6 +7,8 @@ and allows admins to delete messages while broadcasting realtime deletion events
 All endpoints require a valid JWT. The admin identity for delete is extracted
 from the token — admin_id is no longer a client-supplied query parameter."""
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -16,7 +18,7 @@ from app.models.message import Message
 from app.models.room import Room
 from app.models.room_member import RoomMember
 from app.models.user import User
-from app.schemas.message import MessageResponse, ReplySnippet
+from app.schemas.message import MessageResponse, MessageEdit, ReplySnippet
 from app.auth import get_current_user
 
 router = APIRouter(prefix="/rooms/{room_id}/messages", tags=["messages"])
@@ -137,6 +139,7 @@ def get_messages(
                 type=msg.type,
                 content=msg.content,
                 created_at=msg.created_at,
+                edited_at=msg.edited_at,
                 filename=filenames.get(fid) if fid else None,
                 reply_to=msg.reply_to,
                 reply_snippet=reply_map.get(msg.reply_to) if msg.reply_to else None,
@@ -181,3 +184,47 @@ async def delete_message(
     await manager.broadcast(room_id, {"type": "message_deleted", "message_id": message_id})
 
     return {"detail": "Message deleted", "message_id": message_id}
+
+
+@router.patch("/{message_id}")
+async def edit_message(
+    room_id: int,
+    message_id: int,
+    req: MessageEdit,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Edits a text message's content — caller must be the original sender.
+
+    Only the author may edit (you can't rewrite someone else's words), and only
+    text messages are editable. Sets edited_at so the UI can show an "(edited)"
+    label, then broadcasts the change so every open client updates in place.
+    """
+    content = req.content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    msg = db.query(Message).filter(
+        Message.id == message_id,
+        Message.room_id == room_id,
+    ).first()
+    if not msg or msg.is_deleted:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if msg.sender_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only edit your own messages")
+    if msg.type != "text":
+        raise HTTPException(status_code=400, detail="Only text messages can be edited")
+
+    msg.content = content
+    msg.edited_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(msg)
+
+    await manager.broadcast(room_id, {
+        "type": "message_edited",
+        "id": msg.id,
+        "content": msg.content,
+        "edited_at": msg.edited_at.isoformat(),
+    })
+
+    return {"detail": "Message edited", "message_id": message_id}

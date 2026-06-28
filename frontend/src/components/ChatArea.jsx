@@ -205,6 +205,29 @@ export default function ChatArea() {
     [activeRoom?.id, user, dispatch]
   );
 
+  const handleEditMessage = useCallback(
+    async (messageId, content) => {
+      /* Saves an edited message; backend broadcasts the change to everyone. */
+      if (!activeRoom) return;
+      const trimmed = content.trim();
+      if (!trimmed) return;
+      try {
+        await api(`/rooms/${activeRoom.id}/messages/${messageId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ content: trimmed }),
+        });
+        // Update locally for immediacy; the broadcast also reaches the other side.
+        dispatch({
+          type: "UPDATE_MESSAGE",
+          payload: { id: messageId, content: trimmed, edited_at: new Date().toISOString() },
+        });
+      } catch (err) {
+        showToast(err.message);
+      }
+    },
+    [activeRoom?.id, dispatch]
+  );
+
   const handleReply = useCallback(
     (msg) => {
       /* Stores reply target metadata and focuses the message input field. */
@@ -340,6 +363,7 @@ export default function ChatArea() {
               canWrite={canWrite}
               onDelete={handleDeleteMessage}
               onReply={handleReply}
+              onEdit={handleEditMessage}
               onClickReply={scrollToMessage}
               onClickSender={setProfileUserId}
             />
@@ -416,9 +440,11 @@ export default function ChatArea() {
 }
 
 /* ── Single message bubble ── */
-function MessageBubble({ msg, userId, isAdmin, canWrite, onDelete, onReply, onClickReply, onClickSender }) {
+function MessageBubble({ msg, userId, isAdmin, canWrite, onDelete, onReply, onEdit, onClickReply, onClickSender }) {
   /* Renders one chat message row, including reply quote and action buttons. */
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(msg.content);
 
   // Build an authenticated media URL by embedding the JWT as a query param.
   // <img src> and <audio src> cannot send Authorization headers, so ?token= is the fallback.
@@ -570,10 +596,48 @@ function MessageBubble({ msg, userId, isAdmin, canWrite, onDelete, onReply, onCl
                 </div>
               );
             })()
+          ) : editing ? (
+            <div className="msg-edit">
+              <textarea
+                className="msg-edit-input"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={1}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    onEdit(msg.id, draft);
+                    setEditing(false);
+                  } else if (e.key === "Escape") {
+                    setEditing(false);
+                  }
+                }}
+              />
+              <div className="msg-edit-actions">
+                <button
+                  type="button"
+                  className="msg-edit-save"
+                  onClick={() => { onEdit(msg.id, draft); setEditing(false); }}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="msg-edit-cancel"
+                  onClick={() => setEditing(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="text">{msg.content}</div>
           )}
-          <div className="meta">{time}</div>
+          <div className="meta">
+            {time}
+            {msg.edited_at ? <span className="msg-edited"> (edited)</span> : null}
+          </div>
         </div>
 
         {/* Action icons */}
@@ -590,6 +654,20 @@ function MessageBubble({ msg, userId, isAdmin, canWrite, onDelete, onReply, onCl
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="9 17 4 12 9 7" />
                   <path d="M20 18v-2a4 4 0 00-4-4H4" />
+                </svg>
+              </button>
+            )}
+            {isMe && msg.type === "text" && !editing && (
+              <button
+                type="button"
+                className="msg-action-btn"
+                title="Edit message"
+                aria-label="Edit message"
+                onClick={() => { setDraft(msg.content); setEditing(true); }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
                 </svg>
               </button>
             )}

@@ -254,6 +254,34 @@
   text-align: right;
   margin-top: 4px;
 }
+.msg .meta .msg-edited { font-style: italic; opacity: 0.8; }
+
+/* Inline message editor */
+.msg-edit { display: flex; flex-direction: column; gap: 6px; }
+.msg-edit-input {
+  font-size: 0.9rem;
+  line-height: 1.35;
+  resize: vertical;
+  min-height: 2.2em;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text);
+  font-family: inherit;
+}
+.msg-edit-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.msg-edit-save, .msg-edit-cancel {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.msg-edit-cancel {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
 
 .msg-body-row {
   display: flex;

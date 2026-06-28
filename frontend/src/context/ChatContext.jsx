@@ -72,6 +72,16 @@ function reducer(state, action) {
         ),
       };
 
+    case "UPDATE_MESSAGE":
+      return {
+        ...state,
+        messages: state.messages.map((m) =>
+          Number(m.id) === Number(action.payload.id)
+            ? { ...m, content: action.payload.content, edited_at: action.payload.edited_at }
+            : m
+        ),
+      };
+
     case "SET_REPLYING_TO":
       return { ...state, replyingTo: action.payload };
 

@@ -57,10 +57,12 @@ testing/
     │   ├── test_rooms.py        create / list / get rooms
     │   ├── test_members.py      join / approve / reject
     │   ├── test_messages.py     history / delete
+    │   ├── test_message_edit.py sender-only text edit, edited_at, validation
     │   ├── test_files.py        upload / download authorization
     │   ├── test_permissions.py  admin-only moderation (promote / remove)
     │   ├── test_soft_delete.py  deleted message keeps reply previews
     │   ├── test_unread.py       per-room unread counts
+    │   ├── test_direct_rooms.py DMs, profile PATCH, find-by-mobile
     │   └── test_health.py       health endpoint
     └── unit/                  ← isolated function tests (no HTTP, no DB)
         ├── test_database.py

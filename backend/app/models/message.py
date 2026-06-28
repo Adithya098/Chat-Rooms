@@ -20,4 +20,6 @@ class Message(Base):
     content = Column(Text, nullable=False)  # text content or file URL
     reply_to = Column(Integer, ForeignKey("messages.id"), nullable=True)
     is_deleted = Column(Boolean, nullable=False, default=False, server_default="false")
+    # Set when the sender edits the message; NULL means never edited (drives the "(edited)" label).
+    edited_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
