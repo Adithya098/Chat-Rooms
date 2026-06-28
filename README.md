@@ -44,9 +44,11 @@ Built as a full-stack learning project to explore how messaging apps work under 
 ```
 Chat-Rooms/                         # repo root (.env, package.json, runtime.txt)
 ├── README.md
-├── Application_Features.md         # feature reference (roles, DMs, unread, edit, …)
-├── api_docs.md                     # REST + WebSocket reference
-├── setup_docs.md                   # local setup and Render deployment
+├── docs/
+│   ├── Application_Features.md     # feature reference (roles, DMs, unread, edit, …)
+│   ├── api_docs.md                 # REST + WebSocket reference
+│   ├── Live_Feature_Checklist.md   # hands-on evaluator checklist
+│   └── setup_docs.md               # local setup and Render deployment
 ├── backend/
 │   ├── app/
 │   │   ├── auth.py                 # JWT create / verify
@@ -82,7 +84,7 @@ Chat-Rooms/                         # repo root (.env, package.json, runtime.txt
 
 | Document | Description |
 |----------|-------------|
-| [Live_Feature_Checklist.md](Live_Feature_Checklist.md) | Hands-on feature list for evaluators — what to test live in the browser |
-| [Application_Features.md](Application_Features.md) | Features, roles, security, and file storage |
-| [api_docs.md](api_docs.md) | REST endpoints, auth flow, and WebSocket events |
-| [setup_docs.md](setup_docs.md) | Local setup, environment variables, and Render deployment |
+| [Live_Feature_Checklist.md](docs/Live_Feature_Checklist.md) | Hands-on feature list for evaluators — what to test live in the browser |
+| [Application_Features.md](docs/Application_Features.md) | Features, roles, security, and file storage |
+| [api_docs.md](docs/api_docs.md) | REST endpoints, auth flow, and WebSocket events |
+| [setup_docs.md](docs/setup_docs.md) | Local setup, environment variables, and Render deployment |
