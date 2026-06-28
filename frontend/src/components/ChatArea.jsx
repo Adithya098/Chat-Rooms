@@ -52,6 +52,15 @@ export default function ChatArea() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Mark the open room read whenever its message list changes (open or new
+  // arrival while viewing), then tell the sidebar to refresh its unread badges.
+  useEffect(() => {
+    if (!activeRoom || !user || messages.length === 0) return;
+    api(`/rooms/${activeRoom.id}/read`, { method: "POST" })
+      .then(() => window.dispatchEvent(new CustomEvent("chat-unread-refresh")))
+      .catch(() => {});
+  }, [activeRoom?.id, user?.id, messages.length]);
+
   useEffect(() => {
     const onWsDebug = (event) => {
       const d = event.detail || {};

@@ -17,6 +17,10 @@ class RoomMember(Base):
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     role = Column(String(20), nullable=False, default="write")  # admin | write | read
     status = Column(String(20), nullable=False, default="pending")  # pending | approved | rejected
+    # Read watermark: id of the newest message this member has seen in the room.
+    # Unread count is derived as COUNT(messages.id > last_read_message_id), so this
+    # single value can never drift the way a stored counter would. NULL = nothing read yet.
+    last_read_message_id = Column(Integer, nullable=True)
     joined_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (

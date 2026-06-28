@@ -23,8 +23,20 @@ export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
   const [showCreate, setShowCreate] = useState(false);
   const [adminPendingBundles, setAdminPendingBundles] = useState([]);
   const [roomPendingCount, setRoomPendingCount] = useState({});
+  const [unreadCounts, setUnreadCounts] = useState({});
   const [showAdminJoinModal, setShowAdminJoinModal] = useState(false);
   const autoShownPendingIdsRef = useRef(new Set());
+
+  const loadUnread = useCallback(async () => {
+    /* Loads per-room unread message counts for the current user. */
+    if (!user) return;
+    try {
+      const counts = await api("/rooms/unread/counts");
+      setUnreadCounts(counts || {});
+    } catch (err) {
+      console.error("Failed to load unread counts", err);
+    }
+  }, [user]);
 
   const loadRooms = useCallback(async () => {
     /* Loads all rooms and enriches each with this user's membership details. */
@@ -58,6 +70,22 @@ export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
     window.addEventListener("chat-refresh-rooms", onRoomsRefresh);
     return () => window.removeEventListener("chat-refresh-rooms", onRoomsRefresh);
   }, [loadRooms]);
+
+  // Unread badges: load once, refresh when a room is read or the tab regains
+  // focus, and poll so background rooms (no live socket) stay roughly current.
+  useEffect(() => {
+    if (!user) return undefined;
+    loadUnread();
+    const onUnreadRefresh = () => loadUnread();
+    window.addEventListener("chat-unread-refresh", onUnreadRefresh);
+    window.addEventListener("focus", onUnreadRefresh);
+    const t = setInterval(loadUnread, 10000);
+    return () => {
+      window.removeEventListener("chat-unread-refresh", onUnreadRefresh);
+      window.removeEventListener("focus", onUnreadRefresh);
+      clearInterval(t);
+    };
+  }, [user, loadUnread]);
 
   // Pick up admin approvals without a full reload (DB was already updated).
   useEffect(() => {
@@ -249,6 +277,12 @@ export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
           >
             <span className="room-name">{room.name}</span>
             <span className="room-meta">
+              {activeRoom?.id !== room.id &&
+                (unreadCounts[room.id] || 0) > 0 && (
+                  <span className="room-unread-badge" title="Unread messages">
+                    {unreadCounts[room.id] > 99 ? "99+" : unreadCounts[room.id]}
+                  </span>
+                )}
               {room.membership?.role === "admin" &&
                 room.membership?.status === "approved" &&
                 (roomPendingCount[room.id] || 0) > 0 && (

@@ -15,6 +15,7 @@ if str(BACKEND_ROOT) not in sys.path:
 
 import app.models  # noqa: F401
 from app.database import Base, get_db
+from app.auth import get_current_user
 from app.main import app
 import app.main as main_module
 from app.models.message import Message
@@ -41,14 +42,29 @@ def db_session():
 
 
 @pytest.fixture()
-def client(db_session):
+def auth_user(seed_users):
+    """Mutable holder for the identity the test client authenticates as.
+
+    The endpoints derive the caller from the JWT (get_current_user); in tests we
+    override that dependency to return this user. Defaults to Alice (room admin);
+    a test can act as someone else via `auth_user["current"] = seed_users["bob"]`.
+    """
+    return {"current": seed_users["alice"]}
+
+
+@pytest.fixture()
+def client(db_session, auth_user):
     def override_get_db():
         try:
             yield db_session
         finally:
             pass
 
+    def override_current_user():
+        return auth_user["current"]
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_current_user
     main_module._db_healthy = True
     with TestClient(app) as test_client:
         yield test_client
