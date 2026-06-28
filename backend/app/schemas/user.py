@@ -32,6 +32,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     """Request payload for editing your own profile — fields omitted are left unchanged."""
     name: Optional[str] = None
+    email: Optional[EmailStr] = None
     mobile: Optional[str] = None
 
 

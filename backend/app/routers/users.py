@@ -94,6 +94,17 @@ def update_me(
             raise HTTPException(status_code=400, detail="Name cannot be empty")
         current_user.name = name
 
+    if req.email is not None:
+        normalized_email = str(req.email).strip().lower()
+        # Email is unique — reject if another account already uses it.
+        taken = db.query(User).filter(
+            User.email == normalized_email,
+            User.id != current_user.id,
+        ).first()
+        if taken:
+            raise HTTPException(status_code=400, detail="Email already in use")
+        current_user.email = normalized_email
+
     if req.mobile is not None:
         current_user.mobile = req.mobile.strip()
 

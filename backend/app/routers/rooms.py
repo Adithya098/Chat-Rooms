@@ -146,6 +146,8 @@ def get_unread_counts(
         .filter(RoomMember.user_id == current_user.id)
         .filter(RoomMember.status == "approved")
         .filter(Message.is_deleted.is_(False))
+        # Your own messages are never "unread" to you, even if the watermark lags.
+        .filter(Message.sender_id != current_user.id)
         .filter(Message.id > func.coalesce(RoomMember.last_read_message_id, 0))
         .group_by(Message.room_id)
         .all()

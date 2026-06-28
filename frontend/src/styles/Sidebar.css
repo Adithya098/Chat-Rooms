@@ -106,6 +106,18 @@
 /* Identity and session controls */
 .user-info { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .user-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.edit-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.edit-profile-btn:hover { color: var(--text); }
 
 .logout-btn {
   padding: 8px 12px;

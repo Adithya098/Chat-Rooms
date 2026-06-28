@@ -137,6 +137,14 @@ def upload_file(
     db.refresh(db_msg)
     db.refresh(doc)
 
+    # Uploading a file is sending a message — advance the sender's read watermark so
+    # their own upload is never counted as unread to them (mirrors the text-message path).
+    db.query(RoomMember).filter(
+        RoomMember.room_id == room_id,
+        RoomMember.user_id == current_user.id,
+    ).update({RoomMember.last_read_message_id: db_msg.id})
+    db.commit()
+
     return {
         "message_id": db_msg.id,
         "file_id": doc.file_id,

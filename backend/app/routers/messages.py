@@ -152,22 +152,28 @@ async def delete_message(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Soft-deletes a room message — caller must be an approved admin of this room."""
-    admin = db.query(RoomMember).filter(
-        RoomMember.room_id == room_id,
-        RoomMember.user_id == current_user.id,
-        RoomMember.role == "admin",
-        RoomMember.status == "approved",
-    ).first()
-    if not admin:
-        raise HTTPException(status_code=403, detail="Only admins can delete messages")
+    """Soft-deletes a room message — caller must be the sender or an approved admin.
 
+    Senders can delete their own messages in any room (the only deletion path in
+    direct chats, which have no admin); admins additionally moderate others'
+    messages in group rooms.
+    """
     msg = db.query(Message).filter(
         Message.id == message_id,
         Message.room_id == room_id,
     ).first()
     if not msg or msg.is_deleted:
         raise HTTPException(status_code=404, detail="Message not found")
+
+    is_sender = msg.sender_id == current_user.id
+    is_admin = db.query(RoomMember).filter(
+        RoomMember.room_id == room_id,
+        RoomMember.user_id == current_user.id,
+        RoomMember.role == "admin",
+        RoomMember.status == "approved",
+    ).first() is not None
+    if not (is_sender or is_admin):
+        raise HTTPException(status_code=403, detail="You can only delete your own messages")
 
     msg.is_deleted = True
     db.commit()

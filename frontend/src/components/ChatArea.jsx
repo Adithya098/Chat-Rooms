@@ -593,7 +593,7 @@ function MessageBubble({ msg, userId, isAdmin, canWrite, onDelete, onReply, onCl
                 </svg>
               </button>
             )}
-            {isAdmin && (
+            {(isAdmin || isMe) && (
               <button
                 type="button"
                 className="msg-action-btn msg-action-delete"

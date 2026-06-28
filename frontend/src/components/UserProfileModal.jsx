@@ -18,6 +18,7 @@ export default function UserProfileModal({ userId, onClose }) {
 
   const [profile, setProfile] = useState(isSelf ? state.user : null);
   const [name, setName] = useState(isSelf ? state.user?.name || "" : "");
+  const [email, setEmail] = useState(isSelf ? state.user?.email || "" : "");
   const [mobile, setMobile] = useState(isSelf ? state.user?.mobile || "" : "");
   const [loading, setLoading] = useState(!isSelf);
   const [busy, setBusy] = useState(false);
@@ -45,12 +46,20 @@ export default function UserProfileModal({ userId, onClose }) {
       setError("Name cannot be empty");
       return;
     }
+    if (!email.trim()) {
+      setError("Email cannot be empty");
+      return;
+    }
     setError("");
     setBusy(true);
     try {
       const updated = await api("/users/me", {
         method: "PATCH",
-        body: JSON.stringify({ name: name.trim(), mobile: mobile.trim() }),
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          mobile: mobile.trim(),
+        }),
       });
       // SET_USER also re-persists user + token to localStorage; token is unchanged.
       dispatch({ type: "SET_USER", payload: { user: updated, token: state.token } });
@@ -106,6 +115,15 @@ export default function UserProfileModal({ userId, onClose }) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoFocus
+              />
+            </label>
+            <label className="profile-field">
+              <span className="profile-label">Email</span>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </label>
             <label className="profile-field">

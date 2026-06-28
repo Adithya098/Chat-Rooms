@@ -284,6 +284,18 @@ export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
         <div className="sidebar-header-row">
           <div className="user-info">
             <span className="user-name">{user.name}</span>
+            <button
+              type="button"
+              className="edit-profile-btn"
+              title="Edit your profile"
+              aria-label="Edit your profile"
+              onClick={() => setProfileUserId(user.id)}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+              </svg>
+            </button>
           </div>
           <div className="sidebar-header-actions">
             {totalAdminPending > 0 && (
@@ -328,7 +340,7 @@ export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
       <div className="search-bar">
         <input
           type="text"
-          placeholder="Search rooms..."
+          placeholder="Search for rooms/users through mobile numbers..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />

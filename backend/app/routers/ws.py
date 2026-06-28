@@ -181,6 +181,16 @@ async def websocket_endpoint(
                     msg_db.commit()
                     msg_db.refresh(db_msg)
 
+                    # Sending implies the author has read up to their own message, so
+                    # advance their read watermark here (authoritative, race-free) rather
+                    # than relying on the client's mark-read call. Without this, a sender's
+                    # own trailing messages can show up as unread to themselves.
+                    msg_db.query(RoomMember).filter(
+                        RoomMember.room_id == room_id,
+                        RoomMember.user_id == user_id,
+                    ).update({RoomMember.last_read_message_id: db_msg.id})
+                    msg_db.commit()
+
                     await manager.broadcast(room_id, {
                         "type": "message",
                         "id": db_msg.id,

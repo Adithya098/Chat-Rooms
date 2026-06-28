@@ -29,7 +29,7 @@ Detailed feature reference for Chat Rooms. For API endpoints and WebSocket paylo
 - **Message replies** with quoted preview and scroll-to-original
 - **Typing indicators** with 3-second graceful fade
 - **Room presence** (`online_users` count)
-- **Admin moderation**: soft-delete messages with real-time deletion broadcast
+- **Message deletion**: senders can delete their own messages in any room (the only deletion path in direct chats); admins additionally moderate others' messages in group rooms. Soft-delete is broadcast in real time so it disappears for everyone
 - **Unread message badges**: per-room unread counts in the sidebar, derived from a per-member read watermark (`last_read_message_id`); the open room is auto-marked read and badges refresh on read, tab focus, and a 10s poll
 - **Custom toast + confirm UX** instead of native browser alerts
 - **Safer send UX**: message input is preserved and a toast is shown if the WebSocket is not open
@@ -42,8 +42,10 @@ Detailed feature reference for Chat Rooms. For API endpoints and WebSocket paylo
 - **Two ways to start a DM**: click a member/sender name to open their profile and hit **Message**, or search by phone number from the sidebar's **Direct Messages** section
 - **Find-or-create**: opening a DM reuses the existing 1:1 room if one exists, so duplicates are never created
 - **Privacy**: direct rooms are visible and readable only to their two members; group rooms stay discoverable
-- **Profile cards**: view any user's name/mobile/email; edit your own name and mobile inline
-- **Reused pipeline**: DMs ride the same WebSocket, messages, files, replies, and unread badges as group rooms
+- **Profile cards**: click any name (sidebar, members panel, or a message sender) to open a profile card — read-only for others, editable for yourself
+- **Edit your profile**: a pencil icon next to your name opens the card to edit your **name, email, and mobile** via `PATCH /users/me` (partial update; email is normalized and must be unique); changes refresh your session so they show app-wide instantly
+- **Reused pipeline**: DMs ride the same WebSocket, messages, files, replies, unread badges, and message deletion as group rooms
+- **Delete your own**: either participant can delete the messages they sent (removed for both sides); no admin exists in a direct chat
 
 ---
 
@@ -71,8 +73,8 @@ Detailed feature reference for Chat Rooms. For API endpoints and WebSocket paylo
 
 | Role | Read | Send | Reply | Upload | Approve/Reject | Delete Messages | Remove Members | Promote Members | Leave Room |
 |------|------|------|-------|--------|---------------|-----------------|----------------|-----------------|------------|
-| `admin` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (if not last admin) | ✓ | ✓ (if not last admin) |
-| `write` | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| `admin` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (any) | ✓ (if not last admin) | ✓ | ✓ (if not last admin) |
+| `write` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ (own only) | ✗ | ✗ | ✓ |
 | `read`  | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
 
 ---

@@ -35,7 +35,7 @@ The token is returned by `/users/login` and `/users/signup`.
 | POST | `/users/login` | — | Authenticate (returns `{ token, user }`) |
 | GET | `/users/` | Bearer | List users |
 | GET | `/users/{user_id}` | Bearer | Get user by ID |
-| PATCH | `/users/me` | Bearer | Update own profile (`name`, `mobile`) |
+| PATCH | `/users/me` | Bearer | Update own profile (`name`, `email`, `mobile`) — partial; email is normalized and must be unique |
 | GET | `/users/by-mobile/{number}` | Bearer | Find a user by mobile number (to start a DM) |
 | POST | `/rooms/` | Bearer | Create room (creator from token) |
 | POST | `/rooms/direct` | Bearer | Find-or-create a 1:1 direct room with `{ user_id }` |
@@ -52,7 +52,7 @@ The token is returned by `/users/login` and `/users/signup`.
 | GET | `/rooms/{id}/members` | Bearer | List all members |
 | GET | `/rooms/{id}/pending` | Bearer | List pending join requests |
 | GET | `/rooms/{id}/messages/` | Bearer | Paginated message history |
-| DELETE | `/rooms/{id}/messages/{message_id}` | Bearer (admin) | Soft-delete a message |
+| DELETE | `/rooms/{id}/messages/{message_id}` | Bearer (sender or admin) | Soft-delete a message — sender deletes own; admin moderates any |
 | POST | `/rooms/{id}/upload` | Bearer | Upload file (creates message + document record) |
 | GET | `/rooms/{id}/documents` | Bearer | List room documents |
 | GET | `/documents/{file_id}` | Bearer or `?token=` | Open document (signed URL redirect or local stream) |
