@@ -61,7 +61,7 @@ def test_get_messages_includes_reply_snippet_for_file(client, db_session, seed_r
     assert reply_message["reply_snippet"]["is_image"] is True
 
 
-def test_delete_message_requires_admin(client, db_session, seed_room, seed_users):
+def test_delete_message_requires_admin(client, auth_user, db_session, seed_room, seed_users):
     msg = Message(
         room_id=seed_room.id,
         sender_id=seed_users["bob"].id,
@@ -72,14 +72,11 @@ def test_delete_message_requires_admin(client, db_session, seed_room, seed_users
     db_session.commit()
     db_session.refresh(msg)
 
-    forbidden = client.delete(
-        f"/rooms/{seed_room.id}/messages/{msg.id}",
-        params={"admin_id": seed_users["carol"].id},
-    )
+    # The deleter is the authenticated caller, not a client-supplied admin_id.
+    auth_user["current"] = seed_users["carol"]  # read-only member
+    forbidden = client.delete(f"/rooms/{seed_room.id}/messages/{msg.id}")
     assert forbidden.status_code == 403
 
-    ok = client.delete(
-        f"/rooms/{seed_room.id}/messages/{msg.id}",
-        params={"admin_id": seed_users["alice"].id},
-    )
+    auth_user["current"] = seed_users["alice"]  # room admin
+    ok = client.delete(f"/rooms/{seed_room.id}/messages/{msg.id}")
     assert ok.status_code == 200

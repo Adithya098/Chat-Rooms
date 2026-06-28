@@ -15,7 +15,7 @@ if str(BACKEND_ROOT) not in sys.path:
 
 import app.models  # noqa: F401
 from app.database import Base, get_db
-from app.auth import get_current_user
+from app.auth import get_current_user, get_current_user_flexible
 from app.main import app
 import app.main as main_module
 from app.models.message import Message
@@ -65,6 +65,9 @@ def client(db_session, auth_user):
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_current_user] = override_current_user
+    # Some endpoints (file downloads) use the flexible variant that also accepts
+    # ?token=; override it the same way so those routes authenticate in tests too.
+    app.dependency_overrides[get_current_user_flexible] = override_current_user
     main_module._db_healthy = True
     with TestClient(app) as test_client:
         yield test_client
@@ -96,6 +99,21 @@ def seed_users(db_session):
     for user in (alice, bob, carol):
         db_session.refresh(user)
     return {"alice": alice, "bob": bob, "carol": carol}
+
+
+@pytest.fixture()
+def outsider(db_session):
+    """A user who belongs to no room — for testing non-member access denial."""
+    user = User(
+        name="Outsider",
+        email="outsider@example.com",
+        password_hash="hash",
+        mobile="9090909090",
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
 
 
 @pytest.fixture()

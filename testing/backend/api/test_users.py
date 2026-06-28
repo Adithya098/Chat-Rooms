@@ -8,8 +8,10 @@ def test_signup_success(client):
     res = client.post("/users/signup", json=payload)
     assert res.status_code == 201
     body = res.json()
-    assert body["email"] == "new.user@example.com"
-    assert body["name"] == "New User"
+    # Signup returns an AuthResponse: a JWT plus the nested user profile.
+    assert body["token"]
+    assert body["user"]["email"] == "new.user@example.com"
+    assert body["user"]["name"] == "New User"
 
 
 def test_signup_duplicate_email_fails(client, seed_users):
@@ -58,4 +60,7 @@ def test_login_success(client):
         json={"email": "login.user@example.com", "password": "correct-password"},
     )
     assert res.status_code == 200
-    assert res.json()["email"] == "login.user@example.com"
+    body = res.json()
+    # Login returns an AuthResponse: a JWT plus the nested user profile.
+    assert body["token"]
+    assert body["user"]["email"] == "login.user@example.com"

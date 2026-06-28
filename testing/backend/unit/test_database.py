@@ -21,4 +21,16 @@ def test_database_url_falls_back_to_database_url(monkeypatch):
     monkeypatch.delenv("DB_HOST", raising=False)
     monkeypatch.setenv("DATABASE_URL", "postgresql://localhost:5432/override")
 
-    assert database._database_url() == "postgresql://localhost:5432/override"
+    # The DATABASE_URL driver is normalized to psycopg (the Render fix), so a bare
+    # postgresql:// URL is rewritten to postgresql+psycopg://.
+    assert database._database_url() == "postgresql+psycopg://localhost:5432/override"
+
+
+def test_database_url_normalizes_postgres_scheme(monkeypatch):
+    monkeypatch.delenv("DB_USER", raising=False)
+    monkeypatch.delenv("DB_PASSWORD", raising=False)
+    monkeypatch.delenv("DB_HOST", raising=False)
+    # The legacy postgres:// scheme is likewise rewritten to postgresql+psycopg://.
+    monkeypatch.setenv("DATABASE_URL", "postgres://localhost:5432/legacy")
+
+    assert database._database_url() == "postgresql+psycopg://localhost:5432/legacy"
