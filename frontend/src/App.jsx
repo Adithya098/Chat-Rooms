@@ -29,7 +29,7 @@ function AppInner() {
     (room, role) => {
       dispatch({
         type: "SET_ACTIVE_ROOM",
-        payload: { id: room.id, name: room.name, role },
+        payload: { id: room.id, name: room.name, role, room_type: room.room_type },
       });
     },
     [dispatch]

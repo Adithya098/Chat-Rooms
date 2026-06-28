@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
-from app.schemas.user import UserSignup, UserLogin, UserResponse, AuthResponse
+from app.schemas.user import UserSignup, UserLogin, UserUpdate, UserResponse, AuthResponse
 from app.auth import create_access_token, get_current_user
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -75,6 +75,55 @@ def get_users(
 ):
     """Returns all user records — requires a valid JWT."""
     return db.query(User).all()
+
+
+@router.patch("/me", response_model=UserResponse)
+def update_me(
+    req: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Updates the authenticated user's own profile (name and/or mobile).
+
+    Only fields present in the request are touched, so a partial edit never wipes
+    the other value. A blank name is rejected; mobile may be cleared to empty.
+    """
+    if req.name is not None:
+        name = req.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Name cannot be empty")
+        current_user.name = name
+
+    if req.mobile is not None:
+        current_user.mobile = req.mobile.strip()
+
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.get("/by-mobile/{number}", response_model=UserResponse)
+def get_user_by_mobile(
+    number: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Resolves a mobile number to a user so the caller can start a direct message.
+
+    Matches the stored (stripped) mobile exactly. Looking up your own number is
+    rejected — there is no one to message. Declared before /{user_id} only for
+    readability; the two paths differ in segment count and never collide.
+    """
+    needle = number.strip()
+    if not needle:
+        raise HTTPException(status_code=400, detail="Mobile number is required")
+
+    user = db.query(User).filter(User.mobile == needle).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="No user found with that mobile number")
+    if user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="That is your own number")
+    return user
 
 
 @router.get("/{user_id}", response_model=UserResponse)

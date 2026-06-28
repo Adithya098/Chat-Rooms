@@ -29,6 +29,12 @@ class UserCreate(BaseModel):
     email: EmailStr
 
 
+class UserUpdate(BaseModel):
+    """Request payload for editing your own profile — fields omitted are left unchanged."""
+    name: Optional[str] = None
+    mobile: Optional[str] = None
+
+
 class UserResponse(BaseModel):
     """Response model that exposes persisted user fields returned by API endpoints."""
     id: int

@@ -35,8 +35,13 @@ The token is returned by `/users/login` and `/users/signup`.
 | POST | `/users/login` | — | Authenticate (returns `{ token, user }`) |
 | GET | `/users/` | Bearer | List users |
 | GET | `/users/{user_id}` | Bearer | Get user by ID |
+| PATCH | `/users/me` | Bearer | Update own profile (`name`, `mobile`) |
+| GET | `/users/by-mobile/{number}` | Bearer | Find a user by mobile number (to start a DM) |
 | POST | `/rooms/` | Bearer | Create room (creator from token) |
-| GET | `/rooms/` | Bearer | List all rooms |
+| POST | `/rooms/direct` | Bearer | Find-or-create a 1:1 direct room with `{ user_id }` |
+| GET | `/rooms/` | Bearer | List rooms (group rooms + your own direct rooms) |
+| GET | `/rooms/unread/counts` | Bearer | Per-room unread counts `{ room_id: count }` |
+| POST | `/rooms/{id}/read` | Bearer | Mark a room read (advance read watermark) |
 | GET | `/rooms/{id}` | Bearer | Get room by ID |
 | POST | `/rooms/{id}/join` | Bearer | Request to join with role (`read` or `write`) |
 | POST | `/rooms/{id}/approve` | Bearer (admin) | Approve a pending member |
@@ -55,6 +60,8 @@ The token is returned by `/users/login` and `/users/signup`.
 | WS | `/ws/{room_id}?token=` | `?token=` JWT | WebSocket (messages, typing, presence) |
 
 > `/documents/{file_id}` accepts both `Authorization: Bearer` and `?token=` query param. The `?token=` fallback is required because browser `<img>`, `<audio>`, and `<video>` tags cannot attach custom headers.
+
+> **Direct rooms** (`room_type: "direct"`) are private to their two members: list/detail/message reads return `404` to non-members, and the join/approve/promote/leave/remove endpoints return `400`. Both members are auto-approved at creation, so the existing WebSocket and message endpoints work unchanged.
 
 ---
 

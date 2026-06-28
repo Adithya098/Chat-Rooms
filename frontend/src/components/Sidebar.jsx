@@ -12,7 +12,15 @@ import { showToast } from "../utils/toast";
 import JoinModal from "./JoinModal";
 import CreateRoomModal from "./CreateRoomModal";
 import AdminJoinRequestsModal from "./AdminJoinRequestsModal";
+import NewDirectMessageModal from "./NewDirectMessageModal";
+import UserProfileModal from "./UserProfileModal";
 import "../styles/Sidebar.css";
+
+/* Display label for a room: a group's name, or the other participant for a DM. */
+function roomLabel(room) {
+  if (room.room_type === "direct") return room.dmName || "Direct message";
+  return room.name || "Untitled";
+}
 
 export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
   /* Renders room list UI and coordinates room selection and room-level actions. */
@@ -25,6 +33,8 @@ export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
   const [roomPendingCount, setRoomPendingCount] = useState({});
   const [unreadCounts, setUnreadCounts] = useState({});
   const [showAdminJoinModal, setShowAdminJoinModal] = useState(false);
+  const [showNewDm, setShowNewDm] = useState(false);
+  const [profileUserId, setProfileUserId] = useState(null);
   const autoShownPendingIdsRef = useRef(new Set());
 
   const loadUnread = useCallback(async () => {
@@ -49,9 +59,24 @@ export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
           try {
             const members = await api(`/rooms/${room.id}/members`);
             const me = members.find((m) => Number(m.user_id) === myId);
-            return { ...room, membership: me || null };
+            // Direct rooms have no stored name — resolve the other member's name to show.
+            let dmName = null;
+            let dmUserId = null;
+            if (room.room_type === "direct") {
+              const other = members.find((m) => Number(m.user_id) !== myId);
+              if (other) {
+                dmUserId = other.user_id;
+                try {
+                  const u = await api(`/users/${other.user_id}`);
+                  dmName = u.name;
+                } catch {
+                  dmName = `User ${other.user_id}`;
+                }
+              }
+            }
+            return { ...room, membership: me || null, dmName, dmUserId };
           } catch {
-            return { ...room, membership: null };
+            return { ...room, membership: null, dmName: null, dmUserId: null };
           }
         })
       );
@@ -169,8 +194,12 @@ export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
     0
   );
 
-  const filtered = rooms
-    .filter((r) => r.name.toLowerCase().includes(search.toLowerCase()))
+  const matchesSearch = (r) =>
+    roomLabel(r).toLowerCase().includes(search.toLowerCase());
+
+  // Group rooms keep the discovery list (approved → pending → rejected → none).
+  const groupRooms = rooms
+    .filter((r) => r.room_type !== "direct" && matchesSearch(r))
     .sort((a, b) => {
       const order = (m) => {
         if (!m) return 3;
@@ -181,11 +210,17 @@ export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
       return order(a.membership) - order(b.membership);
     });
 
+  // Direct rooms only ever include the caller (backend-filtered) and are all approved.
+  const directRooms = rooms
+    .filter((r) => r.room_type === "direct" && matchesSearch(r))
+    .sort((a, b) => roomLabel(a).localeCompare(roomLabel(b)));
+
   const handleRoomClick = (room) => {
     /* Opens approved rooms or routes non-approved states to feedback/actions. */
     const m = room.membership;
     if (m && m.status === "approved") {
-      onEnterRoom(room, m.role);
+      // Pass the resolved label as the name — direct rooms have no stored name.
+      onEnterRoom({ ...room, name: roomLabel(room) }, m.role);
     } else if (m && m.status === "pending") {
       showToast("Your join request is pending admin approval.", "info");
     } else if (m && m.status === "rejected") {
@@ -210,6 +245,37 @@ export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
   const handleLogout = () => {
     /* Clears user session state and returns app to login screen. */
     dispatch({ type: "LOGOUT" });
+  };
+
+  const renderRoom = (room) => {
+    /* Renders one room/DM row with unread badge and membership cues. */
+    const isDirect = room.room_type === "direct";
+    return (
+      <li
+        key={room.id}
+        className={activeRoom?.id === room.id ? "active" : ""}
+        onClick={() => handleRoomClick(room)}
+      >
+        <span className="room-name">{roomLabel(room)}</span>
+        <span className="room-meta">
+          {activeRoom?.id !== room.id && (unreadCounts[room.id] || 0) > 0 && (
+            <span className="room-unread-badge" title="Unread messages">
+              {unreadCounts[room.id] > 99 ? "99+" : unreadCounts[room.id]}
+            </span>
+          )}
+          {/* Pending-request pill and role badge are group-room concepts only. */}
+          {!isDirect &&
+            room.membership?.role === "admin" &&
+            room.membership?.status === "approved" &&
+            (roomPendingCount[room.id] || 0) > 0 && (
+              <span className="room-pending-pill" title="Pending join requests">
+                {roomPendingCount[room.id]}
+              </span>
+            )}
+          {!isDirect && badgeFor(room.membership)}
+        </span>
+      </li>
+    );
   };
 
   return (
@@ -269,36 +335,29 @@ export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
       </div>
 
       <ul className="room-list">
-        {filtered.map((room) => (
-          <li
-            key={room.id}
-            className={activeRoom?.id === room.id ? "active" : ""}
-            onClick={() => handleRoomClick(room)}
-          >
-            <span className="room-name">{room.name}</span>
-            <span className="room-meta">
-              {activeRoom?.id !== room.id &&
-                (unreadCounts[room.id] || 0) > 0 && (
-                  <span className="room-unread-badge" title="Unread messages">
-                    {unreadCounts[room.id] > 99 ? "99+" : unreadCounts[room.id]}
-                  </span>
-                )}
-              {room.membership?.role === "admin" &&
-                room.membership?.status === "approved" &&
-                (roomPendingCount[room.id] || 0) > 0 && (
-                  <span
-                    className="room-pending-pill"
-                    title="Pending join requests"
-                  >
-                    {roomPendingCount[room.id]}
-                  </span>
-                )}
-              {badgeFor(room.membership)}
-            </span>
-          </li>
-        ))}
-        {filtered.length === 0 && (
+        <li className="room-section-header">Rooms</li>
+        {groupRooms.map(renderRoom)}
+        {groupRooms.length === 0 && (
           <li className="empty-rooms">No rooms found</li>
+        )}
+
+        <li className="room-section-header">
+          <span>Direct Messages</span>
+          <button
+            type="button"
+            className="dm-new-btn"
+            title="New direct message"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowNewDm(true);
+            }}
+          >
+            +
+          </button>
+        </li>
+        {directRooms.map(renderRoom)}
+        {directRooms.length === 0 && (
+          <li className="empty-rooms">No direct messages</li>
         )}
       </ul>
 
@@ -331,6 +390,24 @@ export default function Sidebar({ onEnterRoom, theme, onToggleTheme }) {
             setShowCreate(false);
             loadRooms();
           }}
+        />
+      )}
+
+      {showNewDm && (
+        <NewDirectMessageModal
+          onClose={() => setShowNewDm(false)}
+          onFound={(foundUserId) => {
+            // Hand off to the profile modal, whose "Message" button opens the DM.
+            setShowNewDm(false);
+            setProfileUserId(foundUserId);
+          }}
+        />
+      )}
+
+      {profileUserId != null && (
+        <UserProfileModal
+          userId={profileUserId}
+          onClose={() => setProfileUserId(null)}
         />
       )}
     </aside>

@@ -12,6 +12,7 @@ import { API_BASE } from "../config.js";
 import { api, uploadFile } from "../hooks/useApi";
 import { useWebSocket } from "../hooks/useWebSocket";
 import MembersPanel from "./MembersPanel";
+import UserProfileModal from "./UserProfileModal";
 import { showToast } from "../utils/toast";
 import { showConfirm } from "../utils/confirm";
 import "../styles/Chat.css";
@@ -29,6 +30,7 @@ export default function ChatArea() {
   const fileInputRef = useRef(null);
   const [text, setText] = useState("");
   const [showMembers, setShowMembers] = useState(false);
+  const [profileUserId, setProfileUserId] = useState(null);
   const [wsTypingInDebug, setWsTypingInDebug] = useState("idle");
   const [lastTypingUser, setLastTypingUser] = useState(null);
   const typingTimerRef = useRef(null);
@@ -262,6 +264,7 @@ export default function ChatArea() {
 
   const canWrite = activeRoom.role === "write" || activeRoom.role === "admin";
   const isAdmin = activeRoom.role === "admin";
+  const isDirect = activeRoom.room_type === "direct";
   const typingNames = Object.keys(typingUsers);
   const typingLabel =
     typingNames.length === 1
@@ -288,22 +291,29 @@ export default function ChatArea() {
           </button>
           <h2>{activeRoom.name}</h2>
           <div className="chat-header-right">
-            <span className={`badge badge-${activeRoom.role}`}>{activeRoom.role}</span>
+            {/* Role/members/leave are group concepts — direct chats omit them. */}
+            {!isDirect && (
+              <span className={`badge badge-${activeRoom.role}`}>{activeRoom.role}</span>
+            )}
             <span className="online-count">{onlineUsers.length} online</span>
-            <button
-              className="members-btn"
-              onClick={() => setShowMembers((v) => !v)}
-            >
-              Members
-            </button>
-            <button
-              className="leave-btn"
-              onClick={handleLeaveRoom}
-              title="Leave this room"
-              aria-label="Leave room"
-            >
-              Leave
-            </button>
+            {!isDirect && (
+              <button
+                className="members-btn"
+                onClick={() => setShowMembers((v) => !v)}
+              >
+                Members
+              </button>
+            )}
+            {!isDirect && (
+              <button
+                className="leave-btn"
+                onClick={handleLeaveRoom}
+                title="Leave this room"
+                aria-label="Leave room"
+              >
+                Leave
+              </button>
+            )}
           </div>
         </div>
 
@@ -331,6 +341,7 @@ export default function ChatArea() {
               onDelete={handleDeleteMessage}
               onReply={handleReply}
               onClickReply={scrollToMessage}
+              onClickSender={setProfileUserId}
             />
           ))}
           <div ref={messagesEndRef} />
@@ -393,12 +404,19 @@ export default function ChatArea() {
       {showMembers && (
         <MembersPanel onClose={() => setShowMembers(false)} />
       )}
+
+      {profileUserId != null && (
+        <UserProfileModal
+          userId={profileUserId}
+          onClose={() => setProfileUserId(null)}
+        />
+      )}
     </main>
   );
 }
 
 /* ── Single message bubble ── */
-function MessageBubble({ msg, userId, isAdmin, canWrite, onDelete, onReply, onClickReply }) {
+function MessageBubble({ msg, userId, isAdmin, canWrite, onDelete, onReply, onClickReply, onClickSender }) {
   /* Renders one chat message row, including reply quote and action buttons. */
   const [expanded, setExpanded] = useState(false);
 
@@ -426,7 +444,14 @@ function MessageBubble({ msg, userId, isAdmin, canWrite, onDelete, onReply, onCl
       <div className="msg-body-row">
         <div className="msg-main">
           {!isMe && (
-            <div className="sender">
+            <div
+              className="sender sender-clickable"
+              role="button"
+              tabIndex={0}
+              title="View profile"
+              onClick={() => onClickSender?.(msg.sender_id)}
+              onKeyDown={(e) => e.key === "Enter" && onClickSender?.(msg.sender_id)}
+            >
               {msg.sender_name || `User ${msg.sender_id}`}
             </div>
           )}

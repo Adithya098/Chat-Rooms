@@ -41,6 +41,11 @@
 .role-btn { flex: 1; min-width: 70px; padding: 10px; text-align: center; }
 .role-btn.role-admin { background: #ff9500; color: white; font-weight: bold; }
 
+/* Profile field rows (view + edit) */
+.profile-field { display: flex; flex-direction: column; gap: 4px; }
+.profile-label { color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.profile-value { color: var(--text); font-size: 0.9rem; word-break: break-word; }
+
 /* Secondary cancel action */
 .cancel-btn {
   background: transparent;

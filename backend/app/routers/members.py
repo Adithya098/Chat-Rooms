@@ -28,6 +28,17 @@ def _get_room_or_404(room_id: int, db: Session) -> Room:
     return room
 
 
+def _reject_if_direct(room: Room) -> None:
+    """Blocks the join/approve/admin workflow on direct rooms.
+
+    Personal chats have a fixed two-person membership created up front, so joining,
+    approving, kicking, promoting, or leaving them is meaningless. Reads (member list)
+    stay allowed — the UI needs them to resolve the other participant's name.
+    """
+    if room.room_type == "direct":
+        raise HTTPException(status_code=400, detail="This action is not available for direct messages")
+
+
 def _get_admin_or_403(room_id: int, admin_id: int, db: Session) -> RoomMember:
     """Validates that the requester is an approved room admin before protected actions."""
     admin = db.query(RoomMember).filter(
@@ -49,7 +60,7 @@ def join_room(
     current_user: User = Depends(get_current_user),
 ):
     """Creates a pending membership request for the authenticated user with a chosen role."""
-    _get_room_or_404(room_id, db)
+    _reject_if_direct(_get_room_or_404(room_id, db))
 
     existing = db.query(RoomMember).filter(
         RoomMember.room_id == room_id,
@@ -81,7 +92,7 @@ def approve_member(
     current_user: User = Depends(get_current_user),
 ):
     """Approves a pending room membership request — caller must be an approved admin."""
-    _get_room_or_404(room_id, db)
+    _reject_if_direct(_get_room_or_404(room_id, db))
     _get_admin_or_403(room_id, current_user.id, db)
 
     member = db.query(RoomMember).filter(
@@ -106,7 +117,7 @@ def reject_member(
     current_user: User = Depends(get_current_user),
 ):
     """Rejects a pending room membership request — caller must be an approved admin."""
-    _get_room_or_404(room_id, db)
+    _reject_if_direct(_get_room_or_404(room_id, db))
     _get_admin_or_403(room_id, current_user.id, db)
 
     member = db.query(RoomMember).filter(
@@ -131,7 +142,7 @@ async def remove_member(
     current_user: User = Depends(get_current_user),
 ):
     """Removes a member from a room — caller must be an approved admin."""
-    _get_room_or_404(room_id, db)
+    _reject_if_direct(_get_room_or_404(room_id, db))
     _get_admin_or_403(room_id, current_user.id, db)
 
     if current_user.id == user_id:
@@ -189,7 +200,7 @@ async def promote_member(
     current_user: User = Depends(get_current_user),
 ):
     """Promotes an approved room member to admin — caller must be an approved admin."""
-    _get_room_or_404(room_id, db)
+    _reject_if_direct(_get_room_or_404(room_id, db))
     _get_admin_or_403(room_id, current_user.id, db)
 
     member = db.query(RoomMember).filter(
@@ -216,7 +227,7 @@ async def leave_room(
     current_user: User = Depends(get_current_user),
 ):
     """Removes the authenticated user from a room while protecting against last-admin exit."""
-    _get_room_or_404(room_id, db)
+    _reject_if_direct(_get_room_or_404(room_id, db))
 
     member = db.query(RoomMember).filter(
         RoomMember.room_id == room_id,

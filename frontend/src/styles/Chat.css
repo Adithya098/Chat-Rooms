@@ -238,6 +238,8 @@
   font-weight: 600;
   margin-bottom: 2px;
 }
+.sender-clickable { cursor: pointer; }
+.sender-clickable:hover { text-decoration: underline; }
 
 .msg .text {
   font-size: 0.9rem;

@@ -56,6 +56,16 @@ def get_messages(
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
 
+    # Direct rooms are private: only their two members may read the history.
+    # A 404 (not 403) avoids confirming the room exists to an outsider.
+    if room.room_type == "direct":
+        is_member = db.query(RoomMember).filter(
+            RoomMember.room_id == room_id,
+            RoomMember.user_id == current_user.id,
+        ).first()
+        if not is_member:
+            raise HTTPException(status_code=404, detail="Room not found")
+
     rows = (
         db.query(Message, User.name)
         .join(User, Message.sender_id == User.id)

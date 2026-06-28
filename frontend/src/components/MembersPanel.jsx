@@ -10,6 +10,7 @@ import { useChat } from "../context/ChatContext";
 import { api } from "../hooks/useApi";
 import { showToast } from "../utils/toast";
 import { showConfirm } from "../utils/confirm";
+import UserProfileModal from "./UserProfileModal";
 import "../styles/Members.css";
 
 export default function MembersPanel({ onClose }) {
@@ -19,6 +20,7 @@ export default function MembersPanel({ onClose }) {
   const [members, setMembers] = useState([]);
   const [pending, setPending] = useState([]);
   const [names, setNames] = useState({});
+  const [profileUserId, setProfileUserId] = useState(null);
 
   const isAdmin = activeRoom?.role === "admin";
 
@@ -139,7 +141,16 @@ export default function MembersPanel({ onClose }) {
             m.role !== "admin";
           return (
             <div key={m.id} className="member-row">
-              <span className="name">{names[m.user_id] || `User ${m.user_id}`}</span>
+              <span
+                className="name name-clickable"
+                role="button"
+                tabIndex={0}
+                title="View profile"
+                onClick={() => setProfileUserId(m.user_id)}
+                onKeyDown={(e) => e.key === "Enter" && setProfileUserId(m.user_id)}
+              >
+                {names[m.user_id] || `User ${m.user_id}`}
+              </span>
               <span className="member-row-actions">
                 <span className={`badge badge-${m.role}`}>{m.role}</span>
                 {canPromote && (
@@ -192,6 +203,13 @@ export default function MembersPanel({ onClose }) {
             </div>
           ))}
         </div>
+      )}
+
+      {profileUserId != null && (
+        <UserProfileModal
+          userId={profileUserId}
+          onClose={() => setProfileUserId(null)}
+        />
       )}
     </aside>
   );

@@ -170,6 +170,31 @@
 }
 .room-list li.empty-rooms:hover { background: transparent; }
 
+/* Section dividers separating group rooms from direct messages */
+.room-list li.room-section-header {
+  cursor: default;
+  padding: 10px 16px 6px;
+  border-bottom: none;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  align-items: center;
+}
+.room-list li.room-section-header:hover { background: transparent; }
+.dm-new-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+.dm-new-btn:hover { color: var(--text); border-color: var(--text-muted); }
+
 .room-name { font-weight: 500; }
 .room-meta { display: flex; align-items: center; gap: 6px; }
 
